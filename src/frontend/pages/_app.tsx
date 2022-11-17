@@ -28,13 +28,18 @@ declare global {
       NEXT_PUBLIC_PLATFORM?: string;
       NEXT_PUBLIC_OTEL_SERVICE_NAME?: string;
       NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?: string;
+      NEXT_SUMO_LOGIC_RUM_ENABLED?: string;
     };
   }
 }
 
-if (typeof window !== 'undefined') {
-  const collector = getCookie('otelCollectorUrl')?.toString() || '';
-  FrontendTracer(collector);
+const { SUMO_LOGIC_RUM_ENABLED } = process.env;
+
+if (SUMO_LOGIC_RUM_ENABLED === 'false') {
+  if (typeof window !== 'undefined') {
+    const collector = getCookie('otelCollectorUrl')?.toString() || '';
+    FrontendTracer(collector);
+  }
 }
 
 const queryClient = new QueryClient();
