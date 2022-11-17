@@ -1,0 +1,43 @@
+extensions:
+  sumologic:
+    install_token: ${SUMO_INSTALLATION_TOKEN}
+    collector_name: ${SUMO_COLLECTOR_NAME}
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+        cors:
+          allowed_origins:
+            - "http://localhost:8080"
+          allowed_headers:
+            - "*"
+
+exporters:
+  sumologic:
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+      queue_size: 10000
+
+processors:
+  batch:
+    send_batch_size: 256
+    timeout: 5s
+
+service:
+  extensions: [sumologic]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [sumologic]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [sumologic]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [sumologic]

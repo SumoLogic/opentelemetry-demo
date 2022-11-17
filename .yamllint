@@ -1,3 +1,6 @@
+ignore: |
+  /sumo_deployments/helm/sumo-opentelemetry-demo/templates/serviceaccount.yaml
+
 extends: default
 
 ignore-from-file: .gitignore
