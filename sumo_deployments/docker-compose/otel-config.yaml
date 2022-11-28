@@ -2,7 +2,6 @@ extensions:
   sumologic:
     install_token: ${SUMO_INSTALLATION_TOKEN}
     collector_name: ${SUMO_COLLECTOR_NAME}
-    api_base_url: https://stag-open-events.sumologic.net/
 
 receivers:
   otlp:
