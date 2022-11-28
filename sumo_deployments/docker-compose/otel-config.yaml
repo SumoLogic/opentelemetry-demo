@@ -1,0 +1,34 @@
+extensions:
+  sumologic:
+    install_token: ${SUMO_INSTALLATION_TOKEN}
+    collector_name: ${SUMO_COLLECTOR_NAME}
+    api_base_url: https://stag-open-events.sumologic.net/
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+        cors:
+          allowed_origins:
+            - "http://localhost:8080"
+          allowed_headers:
+            - "*"
+
+exporters:
+  sumologic:
+
+service:
+  extensions: [sumologic]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: []
+      exporters: [sumologic]
+    metrics:
+      receivers: [otlp]
+      exporters: [sumologic]
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [sumologic]
