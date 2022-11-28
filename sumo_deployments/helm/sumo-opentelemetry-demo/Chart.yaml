@@ -6,7 +6,7 @@ version: 0.1.0
 appVersion: 0.1.0
 dependencies:
   - name: sumologic
-    version: 2.18.1
+    version: 2.19.0
     repository: https://sumologic.github.io/sumologic-kubernetes-collection
   - name: opentelemetry-demo
     version: 0.9.6
