@@ -10,11 +10,14 @@ You will need the [Sumo Logic Installation Token](https://help.sumologic.com/doc
 ## Deployment
 
 1. Set environment variables used to configure [Sumo Logic OTel Distro](https://github.com/SumoLogic/sumologic-otel-collector)
-   ```bash
+
+    ```bash
    export SUMO_INSTALLATION_TOKEN=YOUR_GENERATED_SUMO_INSTALLATION_TOKEN
    export SUMO_COLLECTOR_NAME=YOUR_COLLECTOR_NAME
    ```
-2. Run:
+
+1. Run:
+
    ```bash
    docker-compose up
    ```

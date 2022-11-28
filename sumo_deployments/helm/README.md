@@ -11,35 +11,37 @@ application.
 | K8s  | 1.19+   |
 | Helm | 3.5+    |
 
-You will need a pair of the [Sumo Logic Access Id and Key](https://help.sumologic.com/docs/manage/security/access-keys/).
+You will need a pair of the 
+[Sumo Logic Access Id and Key](https://help.sumologic.com/docs/manage/security/access-keys/).
 
 ## Deployment
 
 1. Go to [sumo-opentelemetry-demo](./sumo-opentelemetry-demo/) directory
 
-1. Update helm chart depencencies
+1. Update helm chart dependencies
 
     ```bash
     helm dependency update
     ```
 
-1. Helm chart installation  
-Example below sets release name as `sumo-demo` and everything will
-be deployed in the `sumo-demo` namespace. In this step
-[Sumo Logic Access Id and Key](https://help.sumologic.com/docs/manage/security/access-keys/)
-are needed.
-
-    ```bash
-    helm install sumo-demo . \
-    --namespace sumo-demo \
-    --create-namespace \
-    --set sumologic.sumologic.accessId=YOUR_SUMO_LOGIC_ACCESS_ID \
-    --set sumologic.sumologic.accessKey=YOUR_SUMO_LOGIC_ACCESS_KEY \
-    --set sumologic.sumologic.clusterName=YOUR_CLUSTER_NAME
-    ```
-
-After successful installation please see the output notes and follow the steps
-to get an access to the OpenTelemetry-Demo Frontend.
+1. Helm chart installation
+   
+   Example below sets release name as `sumo-demo` and everything will
+   be deployed in the `sumo-demo` namespace. In this step
+   [Sumo Logic Access Id and Key](https://help.sumologic.com/docs/manage/security/access-keys/)
+   are needed.
+   
+       ```bash
+       helm install sumo-demo . \
+       --namespace sumo-demo \
+       --create-namespace \
+       --set sumologic.sumologic.accessId=YOUR_SUMO_LOGIC_ACCESS_ID \
+       --set sumologic.sumologic.accessKey=YOUR_SUMO_LOGIC_ACCESS_KEY \
+       --set sumologic.sumologic.clusterName=YOUR_CLUSTER_NAME
+       ```
+   
+   After successful installation please see the output notes and follow the steps
+   to get access to the OpenTelemetry-Demo Frontend.
 
 ## Application access
 
