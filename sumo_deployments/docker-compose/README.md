@@ -5,7 +5,9 @@ capabilities of Sumo Logic o11y with OpenTelemetry-Demo application.
 
 ## Minimum Requirements
 
-You will need the [Sumo Logic Installation Token](https://help.sumologic.com/docs/manage/security/installation-tokens/) and installed dockern, docker-compose.
+You will need the
+[Sumo Logic Installation Token](https://help.sumologic.com/docs/manage/security/installation-tokens/)
+and installed dockern, docker-compose.
 
 ## Deployment
 
