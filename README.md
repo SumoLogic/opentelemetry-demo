@@ -8,22 +8,34 @@
 
 ## Welcome to the OpenTelemetry Astronomy Shop Demo
 
-We started this project to provide developers, vendors, and OpenTelemetry
-SIG teams with a robust demo application that demonstrates the full feature
-set OpenTelemetry offers.
+This repository contains the OpenTelemetry Astronomy Shop, a microservice-based
+distributed system intended to illustrate the implementation of OpenTelemetry in
+a near real-world environment.
+
+Our goals are threefold:
+
+- Provide a realistic example of a distributed system that can be used to
+  demonstrate OpenTelemetry instrumentation and observability.
+- Build a base for vendors, tooling authors, and others to extend and
+  demonstrate their OpenTelemetry integrations.
+- Create a living example for OpenTelemetry contributors to use for testing new
+  versions of the API, SDK, and other components or enhancements.
 
 We've already made [huge
-progress](https://github.com/open-telemetry/opentelemetry-demo/blob/main/CHANGELOG.md)
-since we've started the project in May 2022 but we're not stopping there. The
-demo is intended to be a living artifact that will be kept up to date and we
-have exciting new features planned as we continue to mature the webstore.
+progress](https://github.com/open-telemetry/opentelemetry-demo/blob/main/CHANGELOG.md),
+and development is ongoing. We hope to represent the full feature set of
+OpenTelemetry across its languages in the future.
 
 If you'd like to help (**which we would love**), check out our [contributing
 guidance](./CONTRIBUTING.md).
 
+If you'd like to extend this demo or maintain a fork of it, please read our
+[fork guidance](./docs/forking.md).
+
 ## Quick start
 
-If you want to just dive in start here.
+You can be up and running with the demo in a few minutes. Check out the docs for
+your preferred deployment method:
 
 - [Docker](./docs/docker_deployment.md)
 - [Kubernetes](./docs/kubernetes_deployment.md)
@@ -40,13 +52,15 @@ We welcome any vendor to fork the project to demonstrate their services and
 adding a link below. The community is committed to maintaining the project and
 keeping it up to date for you.
 
+- [AppDynamics](https://www.appdynamics.com/blog/cloud/how-to-observe-opentelemetry-demo-app-in-appdynamics-cloud/)
+- [Aspecto](https://github.com/aspecto-io/opentelemetry-demo)
 - [Datadog](https://github.com/DataDog/opentelemetry-demo)
 - [Dynatrace](https://www.dynatrace.com/news/blog/opentelemetry-demo-application-with-dynatrace/)
+- [Helios](https://otelsandbox.gethelios.dev)
 - [Honeycomb.io](https://github.com/honeycombio/opentelemetry-demo)
 - [Lightstep](https://github.com/lightstep/opentelemetry-demo)
 - [New Relic](https://github.com/newrelic/opentelemetry-demo)
-
-See [Forking](./docs/forking.md) for more information about creating your own fork.
+- [Uptrace](https://github.com/uptrace/uptrace/tree/master/example/opentelemetry-demo)
 
 ## Contributing
 
@@ -61,18 +75,21 @@ documentation. Our [SIG Calls](CONTRIBUTING.md#join-a-sig-call) are Mondays at
 
 - [Austin Parker](https://github.com/austinlparker), Lightstep
 - [Carter Socha](https://github.com/cartersocha), Lightstep
-- [Morgan McLean](https://github.com/mtwo), Splunk
+- [Juliano Costa](https://github.com/julianocosta89), Dynatrace
 - [Pierre Tessier](https://github.com/puckpuck), Honeycomb
 
 [Approvers](https://github.com/open-telemetry/community/blob/main/community-membership.md#approver)
 ([@open-telemetry/demo-approvers](https://github.com/orgs/open-telemetry/teams/demo-approvers)):
 
-- [Juliano Costa](https://github.com/julianocosta89), Dynatrace
 - [Michael Maxwell](https://github.com/mic-max), Microsoft
 - [Mikko Viitanen](https://github.com/mviitane), Dynatrace
 - [Penghan Wang](https://github.com/wph95), AppDynamics
 - [Reiley Yang](https://github.com/reyang), Microsoft
 - [Ziqi Zhao](https://github.com/fatsheep9146), Alibaba
+
+Emeritus:
+
+- [Morgan McLean](https://github.com/mtwo)
 
 ### Thanks to all the people who have contributed
 

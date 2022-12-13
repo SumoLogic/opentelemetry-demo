@@ -27,7 +27,7 @@ here.
 | Language      | Auto Instrumentation                                                                                                | Manual Instrumentation                                                                                              |
 |---------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 | .NET          | [Cart Service](./services/cartservice.md)                                                                           | [Cart Service](./services/cartservice.md)                                                                           |
-| C++           |                                                                                                                     |                                                                                                                     |
+| C++           |                                                                                                                     | [Currency Service](./services/currencyservice.md)                                                                   |
 | Erlang/Elixir | [Feature Flag Service](./services/featureflagservice.md)                                                            | [Feature Flag Service](./services/featureflagservice.md)                                                            |
 | Go            | [Checkout Service](./services/checkoutservice.md), [Product Catalog Service]( ./services/productcatalogservice.md ) | [Checkout Service](./services/checkoutservice.md), [Product Catalog Service]( ./services/productcatalogservice.md ) |
 | Java          | [Ad Service](./services/adservice.md)                                                                               | [Ad Service](./services/adservice.md)                                                                               |
@@ -65,12 +65,14 @@ We'll be adding more scenarios over time.
 
 - Generate a [Product Catalog error](feature_flags.md) for `GetProduct` requests
   with product id: `OLJCESPC7Z` using the Feature Flag service
+- Discover a memory leak and diagnose it using metrics and traces. [Read more](./scenarios/recommendation_cache.md)
 
 ### Reference
 
 Project reference documentation, like requirements and feature matrices.
 
 - [Architecture](./current_architecture.md)
+- [Development](./development.md)
 - [Feature Flags Reference](./feature_flags.md)
 - [Metric Feature Matrix](./metric_service_features.md)
 - [Requirements](./requirements/)
