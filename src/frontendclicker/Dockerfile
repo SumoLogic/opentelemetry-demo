@@ -37,9 +37,11 @@ ENV PATH /app/node_modules/.bin:$PATH
 # install app dependencies
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD 1
 
-COPY package.json ./
+COPY package*.json ./
 
 RUN npm install
 
 # add app
-COPY . ./
+COPY src ./src
+
+CMD [ "node", "src/clicker.js" ]

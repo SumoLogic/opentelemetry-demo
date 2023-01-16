@@ -212,7 +212,7 @@ const NAVIGATE_RETRY_SECONDS = 60;
         try {
             browser = await puppeteer.launch({
                 executablePath: executablePath,
-                headless: false,
+                headless: true,
                 dumpio: dumpio_debug,
                 slowMo: 250,
                 devtools: false,
@@ -231,7 +231,7 @@ const NAVIGATE_RETRY_SECONDS = 60;
                 const input = await page.$(selector);
                 await input.click({ clickCount: 3 })
                 await page.keyboard.press('Backspace')
-                await page.type(selector, String(value), { delay: utils.getRandomNumber(1000, 2000) });
+                await page.type(selector, String(value), { delay: utils.getRandomInt(1000, 2000) });
             }
 
             async function click(selector, del) {
@@ -252,7 +252,7 @@ const NAVIGATE_RETRY_SECONDS = 60;
                 await page.waitForSelector(GLOBAL_SELECTORS['productCardSelector'], { timeout: delay * 1000 })
                 const products = await page.$$(GLOBAL_SELECTORS['productCardSelector']);
                 if (products) {
-                    const randomNumber = utils.getRandomNumber(0, products.length - 1);
+                    const randomNumber = utils.getRandomInt(0, products.length - 1);
                     await products[randomNumber].click();
                 }
             }
