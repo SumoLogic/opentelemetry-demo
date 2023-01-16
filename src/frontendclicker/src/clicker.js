@@ -253,20 +253,24 @@ const NAVIGATE_RETRY_SECONDS = 60;
                 const products = await page.$$(GLOBAL_SELECTORS['productCardSelector']);
                 if (products) {
                     const randomNumber = utils.getRandomInt(0, products.length - 1);
+                    console.info(`Ordering product: ${await (await products[randomNumber].getProperty('textContent')).jsonValue()}`);
                     await products[randomNumber].click();
                 }
             }
 
             async function selectRandomQuantity(delay) {
                 await page.waitForSelector(GLOBAL_SELECTORS['productQuantitySelector'], { timeout: delay * 1000 });
-                const randomQuantity = utils.getRandomInt(1, 10);
-                await page.select(GLOBAL_SELECTORS['productQuantitySelector'], randomQuantity.toString());
+                const quantity = utils.getRandomInt(1, 10);
+                console.info(`Selected quantity: ${quantity}`);
+                await page.select(GLOBAL_SELECTORS['productQuantitySelector'], quantity.toString());
             }
 
             async function selectRandomCurrency(delay) {
                 const CURRENCIES = ['USD', 'EUR', 'PLN', 'GBP'];
+                const currency = utils.getItemFromList(CURRENCIES);
                 await page.waitForSelector(GLOBAL_SELECTORS['currencySelector'], { timeout: delay * 1000 });
-                await page.select(GLOBAL_SELECTORS['currencySelector'], utils.getItemFromList(CURRENCIES));
+                console.info(`Selected currency: ${currency}`);
+                await page.select(GLOBAL_SELECTORS['currencySelector'], currency);
             }
 
             async function addProductToCart() {
@@ -286,24 +290,29 @@ const NAVIGATE_RETRY_SECONDS = 60;
             // Click Go Shopping btn
             await clickBtnTxt(GLOBAL_SELECTORS['goShoppingBtnTxt']);
 
-            const numberOfProductsToOrder = utils.getRandomInt(1, 3);
-            for (let i = 1; i <= numberOfProductsToOrder; i++) {
-                await addProductToCart()
+            const numberOfProductsToOrder = utils.getRandomInt(0, 3);
+            if (numberOfProductsToOrder > 0) {
+                console.info(`Number of producsts to order: ${numberOfProductsToOrder}`);
+                for (let i = 1; i <= numberOfProductsToOrder; i++) {
+                    await addProductToCart()
 
-                if (numberOfProductsToOrder > 1 && i < numberOfProductsToOrder) {
-                    // Click on Continue Shopping button
-                    await clickBtnTxt(GLOBAL_SELECTORS['continueShoppingBtnTxt'])
+                    if (numberOfProductsToOrder > 1 && i < numberOfProductsToOrder) {
+                        // Click on Continue Shopping button
+                        await clickBtnTxt(GLOBAL_SELECTORS['continueShoppingBtnTxt'])
+                    }
                 }
+
+                // Select Random Currency
+                await selectRandomCurrency(DELAY);
+
+                // Set CVV
+                await clickAndSetFieldValue(GLOBAL_SELECTORS['cvvInput'], utils.getRandomInt(100, 999), DELAY);
+
+                // Place order
+                await click(GLOBAL_SELECTORS['placeOrderBtn']);
+            } else {
+                console.error(`Products to order must be bigger than 0`);
             }
-
-            // Select Random Currency
-            await selectRandomCurrency(DELAY);
-
-            // Set CVV
-            await clickAndSetFieldValue(GLOBAL_SELECTORS['cvvInput'], utils.getRandomInt(100, 999), DELAY);
-
-            // Place order
-            await click(GLOBAL_SELECTORS['placeOrderBtn']);
         } catch (err) {
             console.error(err);
         } finally {
