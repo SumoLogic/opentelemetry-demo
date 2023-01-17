@@ -29,6 +29,7 @@ You will need a pair of the
    Example below sets release name as `sumo-demo` and everything will
    be deployed in the `sumo-demo` namespace. In this step
    [Sumo Logic Access Id and Key](https://help.sumologic.com/docs/manage/security/access-keys/)
+   and [Sumo Logic Real User Monitoring URL](https://help.sumologic.com/docs/apm/real-user-monitoring/#step-1-create-a-rum-http-traces-source)
    are needed.
 
    ```bash
@@ -37,7 +38,8 @@ You will need a pair of the
        --create-namespace \
        --set sumologic.sumologic.accessId=YOUR_SUMO_LOGIC_ACCESS_ID \
        --set sumologic.sumologic.accessKey=YOUR_SUMO_LOGIC_ACCESS_KEY \
-       --set sumologic.sumologic.clusterName=YOUR_CLUSTER_NAME
+       --set sumologic.sumologic.clusterName=YOUR_CLUSTER_NAME \
+       --set sumologic.rumUrl=YOUR_SUMO_LOGIC_RUM_URL
    ```
 
    After successful installation please see the output notes and follow the steps
