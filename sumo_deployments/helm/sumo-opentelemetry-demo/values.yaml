@@ -18,7 +18,6 @@ serviceAccount:
   name: ""
 
 
-
 sumologic:
   rumUrl: "Please provide your Sumo Logic RUM URL here."
 
