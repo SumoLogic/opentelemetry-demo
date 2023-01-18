@@ -18,7 +18,7 @@ exporters:
   sumologic:
     sending_queue:
       enabled: true
-      num_consumers: 100
+      num_consumers: 10
       queue_size: 10000
 
 processors:
