@@ -8,7 +8,8 @@
 
 ## Sumo Logic Quick Start
 
-This repository contains the OpenTelemetry demo application prepared to illustrate OpenTelemetry instrumentation in Sumo Logic.
+This repository contains the OpenTelemetry demo application prepared to
+illustrate OpenTelemetry instrumentation in Sumo Logic.
 
 Please see available deployment guides for:
 

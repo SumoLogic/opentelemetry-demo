@@ -16,18 +16,28 @@ receivers:
 
 exporters:
   sumologic:
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+      queue_size: 10000
+
+processors:
+  batch:
+    send_batch_size: 256
+    timeout: 5s
 
 service:
   extensions: [sumologic]
   pipelines:
     logs:
       receivers: [otlp]
-      processors: []
+      processors: [batch]
       exporters: [sumologic]
     metrics:
       receivers: [otlp]
+      processors: [batch]
       exporters: [sumologic]
     traces:
       receivers: [otlp]
-      processors: []
+      processors: [batch]
       exporters: [sumologic]

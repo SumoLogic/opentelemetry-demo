@@ -18,7 +18,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 512M
     restart: always
     environment:
       - SUMO_INSTALLATION_TOKEN=${SUMO_INSTALLATION_TOKEN}
@@ -46,6 +46,57 @@ services:
       - "${REDIS_PORT}"
     logging: *logging
 
+  # Kafka used by Checkout, Accounting, and Fraud Detection services
+  kafka:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-kafka
+    container_name: kafka
+    build:
+      context: ./
+      dockerfile: ./src/kafka/Dockerfile
+      cache_from:
+        - ${IMAGE_NAME}:${IMAGE_VERSION}-kafka
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+    restart: always
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - OTEL_SERVICE_NAME=kafka
+    logging: *logging
+    healthcheck:
+      test: nc -z kafka 9092
+      start_period: 10s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  accountingservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-accountingservice
+    container_name: accounting-service
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    environment:
+      - KAFKA_SERVICE_ADDR
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - OTEL_SERVICE_NAME=accountingservice
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    logging: *logging
+
   # AdService
   adservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-adservice
@@ -63,7 +114,7 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=adservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
       - sumo-otel-distro
     logging: *logging
@@ -85,7 +136,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_SERVICE_NAME=cartservice
       - ASPNETCORE_URLS=http://*:${CART_SERVICE_PORT}
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
       - redis-cart
       - sumo-otel-distro
@@ -110,19 +161,29 @@ services:
       - PAYMENT_SERVICE_ADDR
       - PRODUCT_CATALOG_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
+      - KAFKA_SERVICE_ADDR
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=checkoutservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
-      - cartservice
-      - currencyservice
-      - emailservice
-      - paymentservice
-      - productcatalogservice
-      - shippingservice
-      - sumo-otel-distro
+      cartservice:
+        condition: service_started
+      currencyservice:
+        condition: service_started
+      emailservice:
+        condition: service_started
+      paymentservice:
+        condition: service_started
+      productcatalogservice:
+        condition: service_started
+      shippingservice:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      sumo-otel-distro:
+        condition: service_started
     logging: *logging
 
   # CurrencyService
@@ -139,9 +200,10 @@ services:
     environment:
       - CURRENCY_SERVICE_PORT
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice,deployment.environment=development,application=opentelemetry-demo   # The C++ SDK does not support OTEL_SERVICE_NAME
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice,${RESOURCE_ATTRIBUTES}   # The C++ SDK does not support OTEL_SERVICE_NAME
     depends_on:
-      - sumo-otel-distro
+      sumo-otel-distro:
+        condition: service_started
     logging: *logging
 
   # EmailService
@@ -160,14 +222,32 @@ services:
       - EMAIL_SERVICE_PORT
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://sumo-otel-distro:4318/v1/traces
       - OTEL_SERVICE_NAME=emailservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
-      - sumo-otel-distro
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  frontendclicker:
+    image: public.ecr.aws/v0i4b3p5/ot-demo:frontendclicker-v1.0
+    container_name: clicker
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    restart: always
+    environment:
+      - BROWSER=chrome
+      - DELAY=5
+      - SHOP_URL=http://${FRONTEND_ADDR}
+    depends_on:
+      frontend:
+        condition: service_started
     logging: *logging
 
   # Frontend
   frontend:
-    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontend
+    image: public.ecr.aws/v0i4b3p5/ot-demo:frontendrum-v1.0
     container_name: frontend
     deploy:
       resources:
@@ -186,22 +266,37 @@ services:
       - PRODUCT_CATALOG_SERVICE_ADDR
       - RECOMMENDATION_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=frontend,deployment.environment=development,application=opentelemetry-demo
-      - OTEL_EXPORTER_OTLP_ENDPOINT
       - ENV_PLATFORM
-      - OTEL_SERVICE_NAME=frontend
-      - PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4318/v1/traces
+      - SUMO_LOGIC_RUM_ENABLED=true
+      - PUBLIC_SUMO_LOGIC_RUM_SERVICE_NAME
+      - PUBLIC_SUMO_LOGIC_RUM_APPLICATION_NAME
+      - PUBLIC_SUMO_LOGIC_RUM_RESOURCE_ATTRIBUTES
+      - PUBLIC_SUMO_LOGIC_RUM_URL=${SUMO_RUM_URL}
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_SERVICE_NAME=frontend-backend
+      - PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - WEB_OTEL_SERVICE_NAME=frontend-web
     depends_on:
-      - adservice
-      - cartservice
-      - checkoutservice
-      - currencyservice
-      - sumo-otel-distro
-      - productcatalogservice
-      - quoteservice
-      - recommendationservice
-      - shippingservice
+      adservice:
+        condition: service_started
+      cartservice:
+        condition: service_started
+      checkoutservice:
+        condition: service_started
+      currencyservice:
+        condition: service_started
+      sumo-otel-distro:
+        condition: service_started
+      productcatalogservice:
+        condition: service_started
+      quoteservice:
+        condition: service_started
+      recommendationservice:
+        condition: service_started
+      shippingservice:
+        condition: service_started
     logging: *logging
 
   # PaymentService
@@ -219,9 +314,10 @@ services:
       - PAYMENT_SERVICE_PORT
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_SERVICE_NAME=paymentservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
-      - sumo-otel-distro
+      sumo-otel-distro:
+        condition: service_started
     logging: *logging
 
   # ProductCatalogService
@@ -240,9 +336,10 @@ services:
       - FEATURE_FLAG_GRPC_SERVICE_ADDR
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_SERVICE_NAME=productcatalogservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
-      - sumo-otel-distro
+      sumo-otel-distro:
+        condition: service_started
     logging: *logging
 
   quoteservice:
@@ -264,9 +361,10 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
       - OTEL_PHP_TRACES_PROCESSOR=simple
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
-      - sumo-otel-distro
+      sumo-otel-distro:
+        condition: service_started
     logging: *logging
 
   # RecommendationService
@@ -295,7 +393,7 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=recommendationservice
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     logging: *logging
 
   # ShippingService
@@ -314,9 +412,10 @@ services:
       - QUOTE_SERVICE_ADDR
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_SERVICE_NAME=shippingservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
-      - sumo-otel-distro
+      sumo-otel-distro:
+        condition: service_started
     logging: *logging
 
   # FeatureFlagService
@@ -337,7 +436,7 @@ services:
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=featureflagservice
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
       - DATABASE_URL=ecto://ffs:ffs@ffs_postgres:5432/ffs
     depends_on:
       ffs_postgres:
@@ -362,28 +461,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # LoadGenerator
-  loadgenerator:
-    image: ${IMAGE_NAME}:${IMAGE_VERSION}-loadgenerator
-    container_name: load-generator
-    deploy:
-      resources:
-        limits:
-          memory: 120M
-    restart: always
-    ports:
-      - "${LOCUST_WEB_PORT}:${LOCUST_WEB_PORT}"
-    environment:
-      - LOCUST_WEB_PORT
-      - LOCUST_USERS
-      - LOCUST_HOST
-      - LOCUST_HEADLESS
-      - LOCUST_AUTOSTART
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-      - OTEL_SERVICE_NAME=loadgenerator
-      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development,application=opentelemetry-demo
-    depends_on:
-      - frontend
-    logging: *logging

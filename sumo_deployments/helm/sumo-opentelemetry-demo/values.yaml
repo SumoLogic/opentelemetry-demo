@@ -17,7 +17,21 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+
 sumologic:
+  rumUrl: "Please provide your Sumo Logic RUM URL here."
+
+  deployments:
+    frontend:
+      image:
+        repository: public.ecr.aws/v0i4b3p5/ot-demo
+        tag: frontendrum-v1.0
+
+    frontendclicker:
+      image:
+        repository: public.ecr.aws/v0i4b3p5/ot-demo
+        tag: frontendclicker-v1.0
+
   sumologic:
     logs:
       enabled: true
@@ -58,17 +72,6 @@ opentelemetry-demo:
       enabled: false
     jaeger:
       enabled: false
-      image:
-        repository: jaegertracing/all-in-one
-        # Overrides the image tag whose default is the chart appVersion.
-        tag: "latest"
-        pullPolicy: IfNotPresent
-        pullSecrets: []
-      args: ["--memory.max-traces", "10000"]
-      resources:
-        limits:
-          memory: 275Mi
-      serviceType: "ClusterIP"
 
   default:
     env:
@@ -129,6 +132,21 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
+
+    accountingService:
+      enabled: true
+      useDefault:
+        env: true
+      env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: cumulative
+        - name: KAFKA_SERVICE_ADDR
+          value: '{{ include "otel-demo.name" . }}-kafka:9092'
+      resources:
+        limits:
+          memory: 20Mi
 
     adService:
       enabled: true
@@ -207,6 +225,8 @@ opentelemetry-demo:
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
         - name: CHECKOUT_SERVICE_PORT
           value: "8080"
+        - name: KAFKA_SERVICE_ADDR
+          value: '{{ include "otel-demo.name" . }}-kafka:9092'
       podAnnotations: {}
       resources:
         limits:
@@ -298,6 +318,22 @@ opentelemetry-demo:
           memory: 160Mi
 
 
+    frauddetectionService:
+      enabled: true
+      useDefault:
+        env: true
+      env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: cumulative
+        - name: KAFKA_SERVICE_ADDR
+          value: '{{ include "otel-demo.name" . }}-kafka:9092'
+      resources:
+        limits:
+          memory: 200Mi
+
+
     ffsPostgres:
       enabled: true
       useDefault:
@@ -330,17 +366,19 @@ opentelemetry-demo:
 
 
     frontend:
-      enabled: true
+      enabled: false
       useDefault:
         env: true
-
-      imageOverride: {}
+      imageOverride:
+        repository: public.ecr.aws/v0i4b3p5/ot-demo
+        tag: frontendrum-v1.0
       schedulingRules:
         nodeSelector: {}
         affinity: {}
         tolerations: []
       serviceType: ClusterIP
       servicePort: 8080
+      envOverrides: []
       env:
         - name: FRONTEND_ADDR
           value: :8080
@@ -367,8 +405,29 @@ opentelemetry-demo:
         limits:
           memory: 200Mi
 
-    loadgenerator:
+
+    kafka:
       enabled: true
+      useDefault:
+        env: false
+      ports:
+        - name: plaintext
+          value: 9092
+        - name: controller
+          value: 9093
+      env:
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: 'PLAINTEXT://{{ include "otel-demo.name" . }}-kafka:9092'
+      resources:
+        limits:
+          memory: 600Mi
+      securityContext:
+        runAsUser: 1000  # appuser
+        runAsGroup: 1000
+        runAsNonRoot: true
+
+    loadgenerator:
+      enabled: false
       useDefault:
         env: true
 

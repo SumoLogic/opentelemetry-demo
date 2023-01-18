@@ -65,3 +65,8 @@ Create the name of the service account to use
 {{- define "sumo-opentelemetry-demo-otelagent-svc-name" -}}
 {{ printf "%s-sumologic-otelagent" .Release.Name }}
 {{- end }}
+
+
+{{- define "sumo-rum-url" -}}
+{{- printf "%s" .Values.sumologic.rumUrl -}}
+{{- end }}
