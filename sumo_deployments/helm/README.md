@@ -8,7 +8,7 @@ application.
 
 | Name | Version |
 |------|---------|
-| K8s  | 1.19+   |
+| K8s  | 1.19-1.24   |
 | Helm | 3.5+    |
 
 You will need a pair of the
