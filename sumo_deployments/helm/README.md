@@ -24,7 +24,7 @@ You will need a pair of the
     helm dependency update
     ```
 
-1. Helm chart installation 
+1. Helm chart installation
 
     #### OpenTelemetry Demo with Sumo Logic Real User Monitoring
 
