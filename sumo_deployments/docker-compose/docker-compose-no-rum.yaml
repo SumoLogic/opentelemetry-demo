@@ -1,0 +1,451 @@
+version: '3.9'
+x-default-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+
+networks:
+  default:
+    name: sumo-opentelemetry-demo
+    driver: bridge
+
+services:
+  # Sumo Logic OTel Distro
+  sumo-otel-distro:
+    image: ${SUMO_IMAGE_NAME}:${SUMO_IMAGE_VERSION}
+    container_name: sumo-otel-distro
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: always
+    environment:
+      - SUMO_INSTALLATION_TOKEN=${SUMO_INSTALLATION_TOKEN}
+      - SUMO_COLLECTOR_NAME=${SUMO_COLLECTOR_NAME}
+    command:
+      - "--config=/etc/otel-config.yaml"
+    volumes:
+      - ./otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "4317"          # OTLP over gRPC receiver
+      - "4318:4318"     # OTLP over HTTP receiver
+      - "8888"          # metrics endpoint
+    logging: *logging
+
+  # Redis
+  redis-cart:
+    image: redis:alpine
+    container_name: redis-cart
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    ports:
+      - "${REDIS_PORT}"
+    logging: *logging
+
+  # Kafka used by Checkout, Accounting, and Fraud Detection services
+  kafka:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-kafka
+    container_name: kafka
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+    restart: always
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - OTEL_SERVICE_NAME=kafka
+      - KAFKA_HEAP_OPTS=-Xmx400m -Xms400m
+    logging: *logging
+    healthcheck:
+      test: nc -z kafka 9092
+      start_period: 10s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  accountingservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-accountingservice
+    container_name: accounting-service
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    environment:
+      - KAFKA_SERVICE_ADDR
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - OTEL_SERVICE_NAME=accountingservice
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    logging: *logging
+
+  # AdService
+  adservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-adservice
+    container_name: ad-service
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    restart: always
+    ports:
+      - "${AD_SERVICE_PORT}"
+    environment:
+      - AD_SERVICE_PORT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_SERVICE_NAME=adservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - FEATURE_FLAG_GRPC_SERVICE_ADDR
+    depends_on:
+      - sumo-otel-distro
+    logging: *logging
+
+  # CartService
+  cartservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-cartservice
+    container_name: cart-service
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+    restart: always
+    ports:
+      - "${CART_SERVICE_PORT}"
+    environment:
+      - CART_SERVICE_PORT
+      - REDIS_ADDR
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_SERVICE_NAME=cartservice
+      - ASPNETCORE_URLS=http://*:${CART_SERVICE_PORT}
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      - redis-cart
+      - sumo-otel-distro
+    logging: *logging
+
+  # CheckoutService
+  checkoutservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-checkoutservice
+    container_name: checkout-service
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    ports:
+      - "${CHECKOUT_SERVICE_PORT}"
+    environment:
+      - CHECKOUT_SERVICE_PORT
+      - CART_SERVICE_ADDR
+      - CURRENCY_SERVICE_ADDR
+      - EMAIL_SERVICE_ADDR
+      - PAYMENT_SERVICE_ADDR
+      - PRODUCT_CATALOG_SERVICE_ADDR
+      - SHIPPING_SERVICE_ADDR
+      - KAFKA_SERVICE_ADDR
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_SERVICE_NAME=checkoutservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      cartservice:
+        condition: service_started
+      currencyservice:
+        condition: service_started
+      emailservice:
+        condition: service_started
+      paymentservice:
+        condition: service_started
+      productcatalogservice:
+        condition: service_started
+      shippingservice:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  # CurrencyService
+  currencyservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-currencyservice
+    container_name: currency-service
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    ports:
+      - "${CURRENCY_SERVICE_PORT}"
+    environment:
+      - CURRENCY_SERVICE_PORT
+      - OTEL_COLLECTOR_HOST
+      - OTEL_COLLECTOR_PORT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice,${RESOURCE_ATTRIBUTES}   # The C++ SDK does not support OTEL_SERVICE_NAME
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  # EmailService
+  emailservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-emailservice
+    container_name: email-service
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+    restart: always
+    ports:
+      - "${EMAIL_SERVICE_PORT}"
+    environment:
+      - APP_ENV=production
+      - EMAIL_SERVICE_PORT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_SERVICE_NAME=emailservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  frontendclicker:
+    image: public.ecr.aws/v0i4b3p5/ot-demo:frontendclicker-v1.0
+    container_name: clicker
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    restart: always
+    environment:
+      - BROWSER=chrome
+      - DELAY=5
+      - SHOP_URL=http://${FRONTEND_ADDR}
+    depends_on:
+      frontend:
+        condition: service_started
+    logging: *logging
+
+  # Frontend
+  frontend:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontend
+    container_name: frontend
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    environment:
+      - PORT=${FRONTEND_PORT}
+      - FRONTEND_ADDR
+      - AD_SERVICE_ADDR
+      - CART_SERVICE_ADDR
+      - CHECKOUT_SERVICE_ADDR
+      - CURRENCY_SERVICE_ADDR
+      - PRODUCT_CATALOG_SERVICE_ADDR
+      - RECOMMENDATION_SERVICE_ADDR
+      - SHIPPING_SERVICE_ADDR
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES}
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - ENV_PLATFORM
+      - OTEL_SERVICE_NAME=frontend
+      - PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - WEB_OTEL_SERVICE_NAME=frontend-web
+    depends_on:
+      - adservice
+      - cartservice
+      - checkoutservice
+      - currencyservice
+      - sumo-otel-distro
+      - productcatalogservice
+      - quoteservice
+      - recommendationservice
+      - shippingservice
+    logging: *logging
+
+  # PaymentService
+  paymentservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-paymentservice
+    container_name: payment-service
+    deploy:
+      resources:
+        limits:
+          memory: 70M
+    restart: always
+    ports:
+      - "${PAYMENT_SERVICE_PORT}"
+    environment:
+      - PAYMENT_SERVICE_PORT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_SERVICE_NAME=paymentservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  # ProductCatalogService
+  productcatalogservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-productcatalogservice
+    container_name: product-catalog-service
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    ports:
+      - "${PRODUCT_CATALOG_SERVICE_PORT}"
+    environment:
+      - PRODUCT_CATALOG_SERVICE_PORT
+      - FEATURE_FLAG_GRPC_SERVICE_ADDR
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_SERVICE_NAME=productcatalogservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  quoteservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-quoteservice
+    container_name: quoteservice
+    deploy:
+      resources:
+        limits:
+          memory: 30M
+    restart: always
+    ports:
+      - "${QUOTE_SERVICE_PORT}"
+    environment:
+      # OTEL_EXPORTER_OTLP_TRACES_ENDPOINT # Not working for PHP
+      - QUOTE_SERVICE_PORT
+      - OTEL_SERVICE_NAME=quoteservice
+      - OTEL_EXPORTER_OTLP_ENDPOINT=sumo-otel-distro:4317
+      - OTEL_TRACES_SAMPLER=parentbased_always_on
+      - OTEL_TRACES_EXPORTER
+      - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
+      - OTEL_PHP_TRACES_PROCESSOR=simple
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  # RecommendationService
+  recommendationservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-recommendationservice
+    container_name: recommendation-service
+    deploy:
+      resources:
+        limits:
+          memory: 500M               # This is high to enable supporting the recommendationCache feature flag use case
+    restart: always
+    ports:
+      - "${RECOMMENDATION_SERVICE_PORT}"
+    depends_on:
+      - productcatalogservice
+      - sumo-otel-distro
+      - featureflagservice
+    environment:
+      - RECOMMENDATION_SERVICE_PORT
+      - PRODUCT_CATALOG_SERVICE_ADDR
+      - FEATURE_FLAG_GRPC_SERVICE_ADDR
+      - OTEL_PYTHON_LOG_CORRELATION=true
+      - OTEL_TRACES_EXPORTER
+      - OTEL_METRICS_EXPORTER
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_SERVICE_NAME=recommendationservice
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    logging: *logging
+
+  # ShippingService
+  shippingservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-shippingservice
+    container_name: shipping-service
+    deploy:
+      resources:
+        limits:
+          memory: 20M
+    restart: always
+    ports:
+      - "${SHIPPING_SERVICE_PORT}"
+    environment:
+      - SHIPPING_SERVICE_PORT
+      - QUOTE_SERVICE_ADDR
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_SERVICE_NAME=shippingservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+    depends_on:
+      sumo-otel-distro:
+        condition: service_started
+    logging: *logging
+
+  # FeatureFlagService
+  featureflagservice:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-featureflagservice
+    container_name: feature-flag-service
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+    restart: always
+    ports:
+      - "${FEATURE_FLAG_SERVICE_PORT}:${FEATURE_FLAG_SERVICE_PORT}"     # Feature Flag Service UI
+      - "${FEATURE_FLAG_GRPC_SERVICE_PORT}"                             # Feature Flag Service gRPC API
+    environment:
+      - FEATURE_FLAG_SERVICE_PORT
+      - FEATURE_FLAG_GRPC_SERVICE_PORT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
+      - OTEL_SERVICE_NAME=featureflagservice
+      - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - DATABASE_URL=ecto://ffs:ffs@ffs_postgres:5432/ffs
+    depends_on:
+      ffs_postgres:
+        condition: service_healthy
+    logging: *logging
+
+  ffs_postgres:
+    image: cimg/postgres:14.2
+    container_name: postgres
+    deploy:
+      resources:
+        limits:
+          memory: 120M
+    restart: always
+    environment:
+      - POSTGRES_USER=ffs
+      - POSTGRES_DB=ffs
+      - POSTGRES_PASSWORD=ffs
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ffs -U ffs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
