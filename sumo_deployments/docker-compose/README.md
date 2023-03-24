@@ -13,7 +13,7 @@ You will need the:
 
 ## Deployment
 
-#### OpenTelemetry Demo with Sumo Logic Real User Monitoring
+### OpenTelemetry Demo with Sumo Logic Real User Monitoring
 
 1. Set environment variables used to configure [Sumo Logic OTel Distro](https://github.com/SumoLogic/sumologic-otel-collector)
  and [Sumo Logic Real User Monitoring](https://help.sumologic.com/docs/apm/real-user-monitoring/)
@@ -30,7 +30,7 @@ You will need the:
    docker-compose up
    ```
 
-#### OpenTelemetry Demo without Sumo Logic Real User Monitoring
+### OpenTelemetry Demo without Sumo Logic Real User Monitoring
 
 1. Set environment variables used to configure [Sumo Logic OTel Distro](https://github.com/SumoLogic/sumologic-otel-collector)
 
