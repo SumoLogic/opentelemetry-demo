@@ -19,13 +19,13 @@ serviceAccount:
 
 
 sumologic:
-  rumUrl: "Please provide your Sumo Logic RUM URL here."
+  rumUrl: ""
 
   deployments:
     frontend:
       image:
         repository: public.ecr.aws/v0i4b3p5/ot-demo
-        tag: frontendrum-v1.0
+        tag: frontendrum-v1.1
 
     frontendclicker:
       image:
@@ -110,7 +110,7 @@ opentelemetry-demo:
       affinity: {}
       tolerations: []
 
-  serviceAccount: ""
+  serviceAccount: {}
 
   components:
     redis:
@@ -154,17 +154,17 @@ opentelemetry-demo:
         env: true
 
       imageOverride: {}
-      serviceType: ClusterIP
       schedulingRules:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      servicePort: 8080
       env:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
         - name: AD_SERVICE_PORT
           value: "8080"
+        - name: FEATURE_FLAG_GRPC_SERVICE_ADDR
+          value: '{{ include "otel-demo.name" . }}-featureflagservice:50053'
       podAnnotations: {}
       resources:
         limits:
@@ -176,12 +176,10 @@ opentelemetry-demo:
         env: true
 
       imageOverride: {}
-      serviceType: ClusterIP
       schedulingRules:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      servicePort: 8080
       env:
         - name: ASPNETCORE_URLS
           value: http://*:8080
@@ -202,12 +200,10 @@ opentelemetry-demo:
         env: true
 
       imageOverride: {}
-      serviceType: ClusterIP
       schedulingRules:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      servicePort: 8080
       env:
         - name: CART_SERVICE_ADDR
           value: '{{ include "otel-demo.name" . }}-cartservice:8080'
@@ -242,8 +238,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       env:
         - name: PORT
           value: "8080"
@@ -263,12 +257,10 @@ opentelemetry-demo:
         env: true
 
       imageOverride: {}
-      serviceType: ClusterIP
       schedulingRules:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      servicePort: 8080
       env:
         - name: APP_ENV
           value: production
@@ -306,7 +298,6 @@ opentelemetry-demo:
           value: 'ecto://ffs:ffs@{{ include "otel-demo.name" . }}-ffspostgres:5432/ffs'
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
-      serviceType: ClusterIP
       ports:
         - name: grpc
           value: 50053
@@ -355,7 +346,6 @@ opentelemetry-demo:
           value: ffs
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
-      serviceType: ClusterIP
       ports:
         - name: postgres
           value: 5432
@@ -369,15 +359,10 @@ opentelemetry-demo:
       enabled: false
       useDefault:
         env: true
-      imageOverride:
-        repository: public.ecr.aws/v0i4b3p5/ot-demo
-        tag: frontendrum-v1.0
       schedulingRules:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       envOverrides: []
       env:
         - name: FRONTEND_ADDR
@@ -398,8 +383,12 @@ opentelemetry-demo:
           value: '{{ include "otel-demo.name" . }}-shippingservice:8080'
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
+        - name: WEB_OTEL_SERVICE_NAME
+          value: frontend-web
         - name: FRONTEND_PORT
           value: "8080"
+        - name: PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+          value: 'http://localhost:4318/v1/traces'
       podAnnotations: {}
       resources:
         limits:
@@ -436,8 +425,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8089
       env:
         - name: FRONTEND_ADDR
           value: '{{ include "otel-demo.name" . }}-frontend:8080'
@@ -472,8 +459,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       env:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
@@ -494,8 +479,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       env:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: 'http://{{ include "sumo-opentelemetry-demo-otelagent-svc-name" . }}:4317'
@@ -518,8 +501,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       env:
         - name: OTEL_PYTHON_LOG_CORRELATION
           value: "true"
@@ -548,8 +529,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       env:
         - name: PORT
           value: "8080"
@@ -576,8 +555,6 @@ opentelemetry-demo:
         nodeSelector: {}
         affinity: {}
         tolerations: []
-      serviceType: ClusterIP
-      servicePort: 8080
       env:
         - name: OTEL_TRACES_SAMPLER
           value: "parentbased_always_on"
