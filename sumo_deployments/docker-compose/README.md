@@ -19,16 +19,16 @@ You will need the:
  and [Sumo Logic Real User Monitoring](https://help.sumologic.com/docs/apm/real-user-monitoring/)
 
 ```bash
-   export SUMO_RUM_URL=YOUR_SUMO_LOGIC_RUM_URL
-   export SUMO_INSTALLATION_TOKEN=YOUR_GENERATED_SUMO_INSTALLATION_TOKEN
-   export SUMO_COLLECTOR_NAME=YOUR_COLLECTOR_NAME
+export SUMO_RUM_URL=YOUR_SUMO_LOGIC_RUM_URL
+export SUMO_INSTALLATION_TOKEN=YOUR_GENERATED_SUMO_INSTALLATION_TOKEN
+export SUMO_COLLECTOR_NAME=YOUR_COLLECTOR_NAME
 ```
 
 1. Run:
 
-   ```bash
-   docker-compose up
-   ```
+```bash
+docker-compose up
+```
 
 ### OpenTelemetry Demo without Sumo Logic Real User Monitoring
 
@@ -41,9 +41,9 @@ You will need the:
 
 1. Run:
 
-   ```bash
-   docker-compose up -f docker-compose-no-rum.yaml
-   ```
+```bash
+docker-compose up -f docker-compose-no-rum.yaml
+```
 
 ## Application access
 
