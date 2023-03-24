@@ -50,11 +50,6 @@ services:
   kafka:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-kafka
     container_name: kafka
-    build:
-      context: ./
-      dockerfile: ./src/kafka/Dockerfile
-      cache_from:
-        - ${IMAGE_NAME}:${IMAGE_VERSION}-kafka
     deploy:
       resources:
         limits:
@@ -67,6 +62,7 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
       - OTEL_SERVICE_NAME=kafka
+      - KAFKA_HEAP_OPTS=-Xmx400m -Xms400m
     logging: *logging
     healthcheck:
       test: nc -z kafka 9092
@@ -115,6 +111,7 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=adservice
       - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
+      - FEATURE_FLAG_GRPC_SERVICE_ADDR
     depends_on:
       - sumo-otel-distro
     logging: *logging
@@ -199,7 +196,10 @@ services:
       - "${CURRENCY_SERVICE_PORT}"
     environment:
       - CURRENCY_SERVICE_PORT
+      - OTEL_COLLECTOR_HOST
+      - OTEL_COLLECTOR_PORT
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
       - OTEL_RESOURCE_ATTRIBUTES=service.name=currencyservice,${RESOURCE_ATTRIBUTES}   # The C++ SDK does not support OTEL_SERVICE_NAME
     depends_on:
       sumo-otel-distro:
@@ -220,7 +220,7 @@ services:
     environment:
       - APP_ENV=production
       - EMAIL_SERVICE_PORT
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://sumo-otel-distro:4318/v1/traces
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
       - OTEL_SERVICE_NAME=emailservice
       - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
     depends_on:
@@ -247,7 +247,7 @@ services:
 
   # Frontend
   frontend:
-    image: public.ecr.aws/v0i4b3p5/ot-demo:frontendrum-v1.0
+    image: public.ecr.aws/v0i4b3p5/ot-demo:frontendrum-v1.1
     container_name: frontend
     deploy:
       resources:
@@ -266,6 +266,7 @@ services:
       - PRODUCT_CATALOG_SERVICE_ADDR
       - RECOMMENDATION_SERVICE_ADDR
       - SHIPPING_SERVICE_ADDR
+      - FEATURE_FLAG_GRPC_SERVICE_ADDR
       - ENV_PLATFORM
       - SUMO_LOGIC_RUM_ENABLED=true
       - PUBLIC_SUMO_LOGIC_RUM_SERVICE_NAME
@@ -358,7 +359,7 @@ services:
       - OTEL_SERVICE_NAME=quoteservice
       - OTEL_EXPORTER_OTLP_ENDPOINT=sumo-otel-distro:4317
       - OTEL_TRACES_SAMPLER=parentbased_always_on
-      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER
       - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
       - OTEL_PHP_TRACES_PROCESSOR=simple
       - OTEL_RESOURCE_ATTRIBUTES=${RESOURCE_ATTRIBUTES}
@@ -387,8 +388,8 @@ services:
       - PRODUCT_CATALOG_SERVICE_ADDR
       - FEATURE_FLAG_GRPC_SERVICE_ADDR
       - OTEL_PYTHON_LOG_CORRELATION=true
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_TRACES_EXPORTER
+      - OTEL_METRICS_EXPORTER
       - OTEL_EXPORTER_OTLP_ENDPOINT
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_SERVICE_NAME=recommendationservice
