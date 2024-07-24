@@ -42,7 +42,7 @@ docker-compose up
 1. Run:
 
 ```bash
-docker-compose up -f docker-compose-no-rum.yaml
+docker-compose -f docker-compose-no-rum.yaml up
 ```
 
 ## Application access
