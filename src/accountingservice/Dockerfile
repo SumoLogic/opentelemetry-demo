@@ -29,7 +29,7 @@ RUN go build -o /go/bin/accountingservice/ ./
 
 # -----------------------------------------------------------------------------
 
-FROM alpine
+FROM alpine:3.20.3
 
 WORKDIR /usr/src/app/
 
