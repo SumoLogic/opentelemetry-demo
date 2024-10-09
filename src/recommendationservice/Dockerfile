@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.10-slim-bullseye as base
+FROM python:3.12.7-slim-bullseye as base
 
 #
 # Fetch requirements
