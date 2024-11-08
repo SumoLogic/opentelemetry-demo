@@ -1,4 +1,4 @@
-FROM alpine:3.17.1
+FROM alpine:3.17.10
 
 # Install Firefox
 RUN echo http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
